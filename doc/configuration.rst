@@ -265,7 +265,7 @@ Used by:
   - `NetworkUSBStorageDriver`_
 
 The NetworkUSBMassStorage can be used in test cases by calling the
-`write_image()`, and `get_size()` functions.
+`copy_files()`, `write_image()`, and `get_size()` functions.
 
 SigrokDevice
 ~~~~~~~~~~~~

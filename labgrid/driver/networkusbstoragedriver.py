@@ -3,6 +3,7 @@ import enum
 import logging
 import subprocess
 import os
+import pathlib
 import time
 import attr
 
@@ -38,6 +39,7 @@ class NetworkUSBStorageDriver(Driver):
         default=None,
         validator=attr.validators.optional(attr.validators.instance_of(str))
     )
+    UMOUNT_BUSY_WAIT = 3 # s
 
     def __attrs_post_init__(self):
         super().__attrs_post_init__()
@@ -48,6 +50,52 @@ class NetworkUSBStorageDriver(Driver):
 
     def on_deactivate(self):
         pass
+
+    @step(args=['filenames', 'target_dir', 'partition'])
+    def copy_files(self, filenames, target_dir, partition=1):
+        if not self.storage.path:
+            raise ExecutionError(
+                "{} is not available".format(self.storage_path)
+            )
+
+        dev_path = pathlib.PurePath(self.storage.path + str(partition))
+        mount_path = pathlib.PurePath('/media') / dev_path.name
+
+        mount_args = ["pmount", dev_path]
+        self.logger.debug('Mount {} to {}'.format(dev_path, mount_path))
+        try:
+            processwrapper.check_output(
+                self.storage.command_prefix + mount_args)
+        except subprocess.CalledProcessError as e:
+            # Proceed if device already has been mounted with pmount, otherwise
+            # give up
+            if not (e.returncode == 4 and str(mount_path) in str(e.output)):
+                raise e
+
+        target_path = pathlib.PurePath(mount_path) / target_dir
+        for f in filenames:
+            mf = ManagedFile(f, self.storage)
+            mf.sync_to_resource()
+            self.logger.debug("Copy {} to {}".format(
+                mf.get_remote_path(), target_path))
+            cp_args = ["cp", mf.get_remote_path(), "-t", target_path]
+            processwrapper.check_output(self.storage.command_prefix + cp_args)
+
+        while True:
+            umount_args = ["pumount", dev_path]
+            try:
+                processwrapper.check_output(
+                    self.storage.command_prefix + umount_args)
+            except subprocess.CalledProcessError as e:
+                if e.returncode == 5:
+                    self.logger.info(
+                            'umount: {}: target is busy; wait for {} s'.format(
+                                dev_path, self.UMOUNT_BUSY_WAIT))
+                    time.sleep(self.UMOUNT_BUSY_WAIT)
+                    continue
+                else:
+                    raise e
+            break
 
     @step(args=['filename'])
     def write_image(self, filename=None, mode=Mode.DD):
