@@ -36,6 +36,8 @@ New Features in 0.3.0
   ``--skip``, ``--seek``.
 - UBootDriver now allows overriding of default boot command (``run bootcmd``)
   via new ``boot_command`` argument.
+- labgrid-client now has a ``copy-files`` subcommand to copy files onto mass
+  storage devices.
 
 Breaking changes in 0.3.0
 ~~~~~~~~~~~~~~~~~~~~~~~~~
