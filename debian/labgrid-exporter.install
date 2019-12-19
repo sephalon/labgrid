@@ -1,3 +1,4 @@
 #!/usr/bin/dh-exec
 
 debian/labgrid-exporter.bin => /usr/bin/labgrid-exporter
+debian/labgrid-exporter.sysuser => /usr/lib/sysusers.d/labgrid-exporter.conf
