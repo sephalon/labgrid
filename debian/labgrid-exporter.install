@@ -1,0 +1,3 @@
+#!/usr/bin/dh-exec
+
+debian/labgrid-exporter.bin => /usr/bin/labgrid-exporter
